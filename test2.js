@@ -1,75 +1,4 @@
-// Global Settings
-var MOVE = {
-  STILL: 0,
-  UP: 1,
-  DOWN: 2,
-  LEFT: 3,
-  RIGHT: 4,
-};
-
-// Levels indicate the points required to win each round
-var levels = [2, 3, 3, 4, 5];
-
-// Color gradient from light green to dark green
-var themeColors = ["#a8e6cf", "#dcedc1", "#ffd3b6", "#ffaaa5", "#ff8b94"];
-
-// Audio
-var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-var backgroundMusicBuffer;
-
-// Function to load and decode the audio file
-function loadBackgroundMusic(url) {
-  fetch(url)
-    .then((response) => response.arrayBuffer())
-    .then((arrayBuffer) => audioCtx.decodeAudioData(arrayBuffer))
-    .then((audioBuffer) => {
-      backgroundMusicBuffer = audioBuffer;
-    })
-    .catch((e) => console.error("Error with decoding audio data", e));
-}
-
-// Function to play the background music in a loop
-function playBackgroundMusic() {
-  if (backgroundMusicBuffer) {
-    var source = audioCtx.createBufferSource();
-    source.buffer = backgroundMusicBuffer;
-    source.loop = true;
-    source.connect(audioCtx.destination);
-    source.start(0);
-  }
-}
-
-// The puck object (The square that bounces around)
-var Puck = {
-  create: function (initialSpeed) {
-    return {
-      width: 18,
-      height: 18,
-      x: this.canvas.width / 2 - 9,
-      y: this.canvas.height / 2 - 9,
-      velocityX: MOVE.STILL,
-      velocityY: MOVE.STILL,
-      speed: initialSpeed || 10,
-    };
-  },
-};
-
-// The paddle object (The bars that move up and down)
-var Paddle = {
-  create: function (position) {
-    return {
-      width: 18,
-      height: 180,
-      x: position === "left" ? 150 : this.canvas.width - 150,
-      y: this.canvas.height / 2 - 35,
-      points: 0,
-      movement: MOVE.STILL,
-      speed: 8,
-    };
-  },
-};
-
-var GameEngine = {
+let GameEngine = {
   setup: function () {
     this.canvas = document.querySelector("canvas");
     this.context = this.canvas.getContext("2d");
@@ -84,7 +13,7 @@ var GameEngine = {
     this.ai = Paddle.create.call(this, "right");
     this.puck = Puck.create.call(this);
 
-    this.ai.speed = 10;
+    this.ai.speed = 1;
     this.running = this.gameOver = false;
     this.turn = this.ai;
     this.timer = this.round = 0;
@@ -222,7 +151,7 @@ var GameEngine = {
           PongUI.showEndGameMenu("Winner!");
         }, 1000);
       } else {
-        this.color = this.getNextRoundColor();
+        this.color = this.getNextRoundColor(this.round + 1);
         this.player.points = this.ai.points = 0;
         this.player.speed += 0.5;
         this.ai.speed += 1;
@@ -342,12 +271,82 @@ var GameEngine = {
     return new Date().getTime() - this.timer >= 1000;
   },
 
-  getNextRoundColor: function () {
-    var newColor = themeColors[Math.floor(Math.random() * themeColors.length)];
-    if (newColor === this.color) return PongUI.getNextRoundColor();
+  getNextRoundColor: function (round) {
+    let newColor = themeColors[round];
     return newColor;
   },
 };
 
-var PongUI = Object.assign({}, GameEngine);
+// Global Settings
+let MOVE = {
+  STILL: 0,
+  UP: 1,
+  DOWN: 2,
+  LEFT: 3,
+  RIGHT: 4,
+};
+
+// Levels indicate the points required to win each round
+let levels = [1, 1, 1, 1, 1];
+
+// Color gradient from light green to dark green
+let themeColors = ["#a8e6cf", "#dcedc1", "#ffd3b6", "#ffaaa5", "#ff8b94"];
+
+// Audio
+let audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+let backgroundMusicBuffer;
+
+// Function to load and decode the audio file
+function loadBackgroundMusic(url) {
+  fetch(url)
+    .then((response) => response.arrayBuffer())
+    .then((arrayBuffer) => audioCtx.decodeAudioData(arrayBuffer))
+    .then((audioBuffer) => {
+      backgroundMusicBuffer = audioBuffer;
+    })
+    .catch((e) => console.error("Error with decoding audio data", e));
+}
+
+// Function to play the background music in a loop
+function playBackgroundMusic() {
+  if (backgroundMusicBuffer) {
+    let source = audioCtx.createBufferSource();
+    source.buffer = backgroundMusicBuffer;
+    source.loop = true;
+    source.connect(audioCtx.destination);
+    source.start(0);
+  }
+}
+
+// The puck object (The square that bounces around)
+let Puck = {
+  create: function (initialSpeed) {
+    return {
+      width: 18,
+      height: 18,
+      x: this.canvas.width / 2 - 9,
+      y: this.canvas.height / 2 - 9,
+      velocityX: MOVE.STILL,
+      velocityY: MOVE.STILL,
+      speed: initialSpeed || 10,
+    };
+  },
+};
+
+// The paddle object (The bars that move up and down)
+let Paddle = {
+  create: function (position) {
+    return {
+      width: 18,
+      height: 180,
+      x: position === "left" ? 150 : this.canvas.width - 150,
+      y: this.canvas.height / 2 - 35,
+      points: 0,
+      movement: MOVE.STILL,
+      speed: 8,
+    };
+  },
+};
+
+let PongUI = Object.assign({}, GameEngine);
 PongUI.setup();
