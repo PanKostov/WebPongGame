@@ -3,19 +3,19 @@ let GameEngine = {
     this.canvas = document.querySelector("canvas");
     this.context = this.canvas.getContext("2d");
 
-    this.canvas.width = 1400;
-    this.canvas.height = 1000;
+    this.canvas.width = 1600;
+    this.canvas.height = 1200;
 
     this.canvas.style.width = this.canvas.width / 2 + "px";
     this.canvas.style.height = this.canvas.height / 2 + "px";
 
     this.player = Paddle.create.call(this, "left");
-    this.ai = Paddle.create.call(this, "right");
+    this.paddle = Paddle.create.call(this, "right");
     this.puck = Puck.create.call(this);
 
-    this.ai.speed = 1;
+    this.paddle.speed = 7;
     this.running = this.gameOver = false;
-    this.turn = this.ai;
+    this.playingNow = this.paddle;
     this.timer = this.round = 0;
     this.color = themeColors[0]; // Start with the first color
 
@@ -71,9 +71,9 @@ let GameEngine = {
 
   updateGameObjects: function () {
     if (!this.gameOver) {
-      if (this.puck.x <= 0) PongUI.resetTurn.call(this, this.ai, this.player);
+      if (this.puck.x <= 0) PongUI.resetTurn.call(this, this.paddle, this.player);
       if (this.puck.x >= this.canvas.width - this.puck.width)
-        PongUI.resetTurn.call(this, this.player, this.ai);
+        PongUI.resetTurn.call(this, this.player, this.paddle);
       if (this.puck.y <= 0) this.puck.velocityY = MOVE.DOWN;
       if (this.puck.y >= this.canvas.height - this.puck.height)
         this.puck.velocityY = MOVE.UP;
@@ -82,13 +82,13 @@ let GameEngine = {
       else if (this.player.movement === MOVE.DOWN)
         this.player.y += this.player.speed;
 
-      if (PongUI.isTurnDelayOver.call(this) && this.turn) {
+      if (PongUI.isTurnDelayOver.call(this) && this.playingNow) {
         this.puck.velocityX =
-          this.turn === this.player ? MOVE.LEFT : MOVE.RIGHT;
+          this.playingNow === this.player ? MOVE.LEFT : MOVE.RIGHT;
         this.puck.velocityY = [MOVE.UP, MOVE.DOWN][Math.round(Math.random())];
         this.puck.y =
           Math.floor(Math.random() * this.canvas.height - 200) + 200;
-        this.turn = null;
+        this.playingNow = null;
       }
 
       if (this.player.y <= 0) this.player.y = 0;
@@ -102,20 +102,20 @@ let GameEngine = {
       else if (this.puck.velocityX === MOVE.RIGHT)
         this.puck.x += this.puck.speed;
 
-      if (this.ai.y > this.puck.y - this.ai.height / 2) {
+      if (this.paddle.y > this.puck.y - this.paddle.height / 2) {
         if (this.puck.velocityX === MOVE.RIGHT)
-          this.ai.y -= this.ai.speed / 1.5;
-        else this.ai.y -= this.ai.speed / 4;
+          this.paddle.y -= this.paddle.speed / 1.5;
+        else this.paddle.y -= this.paddle.speed / 4;
       }
-      if (this.ai.y < this.puck.y - this.ai.height / 2) {
+      if (this.paddle.y < this.puck.y - this.paddle.height / 2) {
         if (this.puck.velocityX === MOVE.RIGHT)
-          this.ai.y += this.ai.speed / 1.5;
-        else this.ai.y += this.ai.speed / 4;
+          this.paddle.y += this.paddle.speed / 1.5;
+        else this.paddle.y += this.paddle.speed / 4;
       }
 
-      if (this.ai.y >= this.canvas.height - this.ai.height)
-        this.ai.y = this.canvas.height - this.ai.height;
-      else if (this.ai.y <= 0) this.ai.y = 0;
+      if (this.paddle.y >= this.canvas.height - this.paddle.height)
+        this.paddle.y = this.canvas.height - this.paddle.height;
+      else if (this.paddle.y <= 0) this.paddle.y = 0;
 
       if (
         this.puck.x - this.puck.width <= this.player.x &&
@@ -127,43 +127,50 @@ let GameEngine = {
         ) {
           this.puck.x = this.player.x + this.puck.width;
           this.puck.velocityX = MOVE.RIGHT;
+          
         }
       }
 
       if (
-        this.puck.x - this.puck.width <= this.ai.x &&
-        this.puck.x >= this.ai.x - this.ai.width
+        this.puck.x - this.puck.width <= this.paddle.x &&
+        this.puck.x >= this.paddle.x - this.paddle.width
       ) {
         if (
-          this.puck.y <= this.ai.y + this.ai.height &&
-          this.puck.y + this.puck.height >= this.ai.y
+          this.puck.y <= this.paddle.y + this.paddle.height &&
+          this.puck.y + this.puck.height >= this.paddle.y
         ) {
-          this.puck.x = this.ai.x - this.puck.width;
+          this.puck.x = this.paddle.x - this.puck.width;
           this.puck.velocityX = MOVE.LEFT;
+         
         }
       }
+
     }
 
     if (this.player.points === levels[this.round]) {
-      if (!levels[this.round + 1]) {
+      this.updateRounds()
+    } else if (this.paddle.points === levels[this.round]) {
+      this.gameOver = true;
+      setTimeout(function () {
+        PongUI.showEndGameMenu("Game Over!");
+      }, 1000);
+    }
+  },
+
+  updateRounds: function () {
+     if (!levels[this.round + 1]) {
         this.gameOver = true;
         setTimeout(function () {
           PongUI.showEndGameMenu("Winner!");
         }, 1000);
       } else {
         this.color = this.getNextRoundColor(this.round + 1);
-        this.player.points = this.ai.points = 0;
+        this.player.points = this.paddle.points = 0;
         this.player.speed += 0.5;
-        this.ai.speed += 1;
+        this.paddle.speed += 1;
         this.puck.speed += 1; // Increase puck speed
         this.round += 1;
       }
-    } else if (this.ai.points === levels[this.round]) {
-      this.gameOver = true;
-      setTimeout(function () {
-        PongUI.showEndGameMenu("Game Over!");
-      }, 1000);
-    }
   },
 
   drawObjects: function () {
@@ -181,7 +188,7 @@ let GameEngine = {
       this.player.height
     );
 
-    this.context.fillRect(this.ai.x, this.ai.y, this.ai.width, this.ai.height);
+    this.context.fillRect(this.paddle.x, this.paddle.y, this.paddle.width, this.paddle.height);
 
     if (PongUI.isTurnDelayOver.call(this)) {
       this.context.fillRect(
@@ -210,7 +217,7 @@ let GameEngine = {
     );
 
     this.context.fillText(
-      this.ai.points.toString(),
+      this.paddle.points.toString(),
       this.canvas.width / 2 + 300,
       200
     );
@@ -261,7 +268,7 @@ let GameEngine = {
 
   resetTurn: function (winner, loser) {
     this.puck = Puck.create.call(this, this.puck.speed + 1); // Increase puck speed
-    this.turn = loser;
+    this.playingNow = loser;
     this.timer = new Date().getTime();
 
     winner.points++;
@@ -287,7 +294,7 @@ let MOVE = {
 };
 
 // Levels indicate the points required to win each round
-let levels = [1, 1, 1, 1, 1];
+let levels = [5, 4, 3, 2, 1];
 
 // Color gradient from light green to dark green
 let themeColors = ["#a8e6cf", "#dcedc1", "#ffd3b6", "#ffaaa5", "#ff8b94"];
